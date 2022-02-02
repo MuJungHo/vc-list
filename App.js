@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, VirtualizedList, StyleSheet, Text, StatusBar } from 'react-native';
+import { SafeAreaView, View, VirtualizedList, StyleSheet, Text, StatusBar, FlatList } from 'react-native';
 
 
 const Item = ({ name }) => (
@@ -10,30 +10,34 @@ const Item = ({ name }) => (
 
 const App = () => {
   const [isLoading, setLoading] = useState(true);
-  const [dataSource, setData] = useState([]);
+  const [dataSource, setDataSource] = useState([]);
+  const [page, setPage] = useState(1);
   const [market, setMarket] = useState('usd');
-  const getItem = (data, index) => ({ ...dataSource[index] })
-  const getItemCount = (data) => 20;
+
   useEffect(() => {
-    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${market}`)
+    setLoading(true)
+    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${market}&per_page=5&page=${page}`)
       .then((response) => response.json())
-      .then((json) => setData(json))
+      .then((json) => {
+        setDataSource(dataSource.concat(json))
+      })
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
-  }, [market]);
+  }, [market, page]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1, padding: 24 }}>
-        {isLoading ? <Text>Loading...</Text> :
-          (<VirtualizedList
-            data={dataSource}
-            initialNumToRender={4}
-            renderItem={({ item }) => <Item name={item.name} />}
-            keyExtractor={item => item.id}
-            getItemCount={getItemCount}
-            getItem={getItem}
-          />)}
+        <FlatList
+          style={{ flex: 1 }}
+          extraData={dataSource}
+          onEndReached={() => setPage(page + 1)}
+          onEndReachedThreshold={0.01}
+          data={dataSource}
+          renderItem={({ item }) => <Item name={item.name} />}
+          keyExtractor={item => item.id}
+        />
+        {isLoading && <Text>Loading...</Text>}
       </View>
 
     </SafeAreaView>
